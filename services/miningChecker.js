@@ -12,10 +12,3 @@ export const calculateMiningAmount = (miningRatePerHour, lastMiningTime) => {
   };
 };
 
-// Example usage:
-const miningRate = 10; // Assuming 10 units per hour
-const lastMiningTimestamp = 1715474204003; // Replace with your last mining timestamp
-
-// Calculate mining amount since last mining
-const result = calculateMiningAmount(miningRate, lastMiningTimestamp);
-console.log(result);

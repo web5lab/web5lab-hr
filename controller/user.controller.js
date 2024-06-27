@@ -30,8 +30,8 @@ const login = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
-  const user = await userSchema.findOne({ id: id });
-  if (!user) {
+  const existingUser = await userSchema.findOne({ id: id });
+  if (!existingUser) {
     const newUser = new userSchema();
     newUser.id = id;
     newUser.userName = username;
@@ -64,6 +64,13 @@ const login = catchAsync(async (req, res) => {
       }
     }
     await newUser.save();
+  }
+
+  let user;
+  if (existingUser) {
+    user = existingUser;
+  } else {
+    user = await userSchema.findOne({ id: id });
   }
 
   const userDb = await userSchema.aggregate([
@@ -130,7 +137,7 @@ const login = catchAsync(async (req, res) => {
     user.powerUps.refill.used = false;
   }
 
-  if (calculateDaysSpent(user.ser.dailyTask.timestamp) != 0) {
+  if (calculateDaysSpent(user.dailyTask.timestamp) != 0) {
     const notificationData = {
       amount: 0,
       type: "dailyreward",
@@ -156,7 +163,10 @@ const login = catchAsync(async (req, res) => {
         await userSchema.findOneAndUpdate(
           { id: user.referedBy },
           {
-            $inc: { Balance: rank.RefralAmount , totalEarning: rank.RefralAmount},
+            $inc: {
+              Balance: rank.RefralAmount,
+              totalEarning: rank.RefralAmount,
+            },
           }
         );
       }
@@ -429,7 +439,6 @@ const addClicks = catchAsync(async (req, res) => {
   const coins = clicks * user.earnPerclicks;
   user.Balance += coins;
   user.totalEarning += coins;
-  console.log("mining time", user.lastMiningTime);
   await user.save();
   const response = responseObject(true, false, {
     data: coins,
@@ -767,6 +776,34 @@ const getRanks = catchAsync(async (req, res) => {
   return res.status(httpStatus.OK).json(response);
 });
 
+const getRanksLeaderBoard = catchAsync(async (req, res) => {
+  const { rank } = req.params;
+  const limit = parseInt(req.query.limit) || 5;
+  const ranks = await userSchema.aggregate([
+    {
+      $match: { currentRank: rank },
+    },
+    {
+      $sort: { totalEarning: 1 },
+    },
+    {
+      $limit: limit,
+    },
+    {
+      $project: {
+        _id: 0,
+        totalEarning: 1,
+        userName: 1,
+      },
+    },
+  ]);
+  const response = responseObject(true, false, {
+    data: ranks,
+    message: "fetched successfully",
+  });
+  return res.status(httpStatus.OK).json(response);
+});
+
 const getDailyLoginRewards = catchAsync(async (req, res) => {
   const daily = await dailyRewardSchema.aggregate([
     {
@@ -806,6 +843,7 @@ const userController = {
   getDailyLoginRewards,
   getBoosters,
   changeNetwork,
+  getRanksLeaderBoard,
 };
 
 export default userController;

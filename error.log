@@ -1,0 +1,3 @@
+{"level":"error","timestamp":"2024-06-27T21:56:19.552Z"}
+{"code":28,"errorResponse":{"code":28,"errmsg":"Cannot create field 'day' in element {dailyTask: []}","index":0},"index":0,"level":"error","timestamp":"2024-06-27T21:56:49.053Z"}
+{"level":"error","timestamp":"2024-06-27T21:59:34.472Z"}

@@ -90,4 +90,4 @@ export const findCurrentRank = (currentBalance) => {
   return currentRank;
 };
 
-console.log(findCurrentRank(-1000000000000000000));
+

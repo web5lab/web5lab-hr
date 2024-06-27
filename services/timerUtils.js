@@ -34,7 +34,4 @@ export const calculateDaysSpent = (lastCheckTime) => {
   return daysSpent;
 };
 
-// Example usage:
-const lastCheckTime = "2021-06-27T01:00:00Z"; // Replace with your last check timestamp
-const result = calculateDaysSpent(lastCheckTime);
-console.log(result); // Will return the number of days spent since the last check
+
