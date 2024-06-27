@@ -778,17 +778,17 @@ const getRanks = catchAsync(async (req, res) => {
 
 const getRanksLeaderBoard = catchAsync(async (req, res) => {
   const { rank } = req.params;
-  const limit = parseInt(req.query.limit) || 5;
+  const limit = parseInt(req.query.limit) || 20;
   const ranks = await userSchema.aggregate([
     {
-      $match: { currentRank: rank },
+      $match: { currentRank: Number(rank) },
     },
-    {
-      $sort: { totalEarning: 1 },
-    },
-    {
-      $limit: limit,
-    },
+    // {
+    //   $sort: { totalEarning: 1 },
+    // },
+    // {
+    //   $limit: limit,
+    // },
     {
       $project: {
         _id: 0,

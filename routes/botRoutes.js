@@ -9,7 +9,7 @@ router.get("/booster", userController.getBoosters);
 router.get("/task", userController.getTask);
 router.get("/rank", userController.getRanks);
 router.get("/dailyReward", userController.getDailyLoginRewards);
-router.get("/lederboard", userController.getRanksLeaderBoard);
+router.get("/lederboard/:rank", userController.getRanksLeaderBoard);
 
 router.post("/reffrals", verifyTgUser, userController.getRefralFrineds);
 router.post("/login", verifyTgUser, userController.login);
