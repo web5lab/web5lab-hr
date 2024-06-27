@@ -18,6 +18,9 @@ const schema = new Schema(
     rewardAmount: {
       type: String,
     },
+    requirment:{
+      type:Number
+    },
     Url:{
         type: String,
     },

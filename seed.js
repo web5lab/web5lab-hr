@@ -132,6 +132,38 @@ const taskData = [
     imgUrl: "task/yt.jpeg",
     group: "specials",
   },
+  {
+    id: 5,
+    tittle: "invite 2 friends",
+    rewardAmount: 20000,
+    requirment:2,
+    imgUrl: "task/2.png",
+    group: "refral",
+  },
+  {
+    id: 6,
+    tittle: "invite 5 friends",
+    rewardAmount: 100000,
+    requirment:5,
+    imgUrl: "task/5.png",
+    group: "refral",
+  },
+  {
+    id: 7,
+    tittle: "invite 10 friends",
+    rewardAmount: 200000,
+    requirment:10,
+    imgUrl: "task/10.png",
+    group: "refral",
+  },
+  {
+    id: 8,
+    tittle: "invite 100 friends",
+    rewardAmount: 2500000,
+    requirment:100,
+    imgUrl: "task/100.png",
+    group: "refral",
+  },
 ];
 
 const dailyRewardData = [
@@ -412,19 +444,19 @@ const addSeedData = async () => {
     await databaseConnection();
     console.log("removing all existing data...");
     await taskSchema.deleteMany();
-    await networkSchema.deleteMany();
-    await rankSchema.deleteMany();
-    await dailyRewardSchema.deleteMany();
-    await boosterSchema.deleteMany();
-    await powerUpsSchema.deleteMany();
-    await userSchema.deleteMany();
+    // await networkSchema.deleteMany();
+    // await rankSchema.deleteMany();
+    // await dailyRewardSchema.deleteMany();
+    // await boosterSchema.deleteMany();
+    // await powerUpsSchema.deleteMany();
+    // await userSchema.deleteMany();
     console.log("adding new data...");
-    await networkSchema.insertMany(networks);
+    // await networkSchema.insertMany(networks);
     await taskSchema.insertMany(taskData);
-    await dailyRewardSchema.insertMany(dailyRewardData);
-    await rankSchema.insertMany(rankData);
-    await boosterSchema.insertMany(boosterData);
-    await powerUpsSchema.insertMany(minerData);
+    // await dailyRewardSchema.insertMany(dailyRewardData);
+    // await rankSchema.insertMany(rankData);
+    // await boosterSchema.insertMany(boosterData);
+    // await powerUpsSchema.insertMany(minerData);
     console.log("added data successfully...");
   } catch (error) {
     console.log("err", error);

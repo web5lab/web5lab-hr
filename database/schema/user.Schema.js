@@ -9,12 +9,17 @@ const schema = new Schema(
       unique: true,
       default: 0,
     },
+
     userName: {
       type: String,
     },
     instanaceId: {
       type: Number,
       default: 0,
+    },
+    isPremium: {
+      type: Boolean,
+      default:false
     },
     name: {
       type: String,
@@ -25,11 +30,11 @@ const schema = new Schema(
     },
     referalId: {
       type: Number,
-      default:0
+      default: 0,
     },
     referedBy: {
       type: Number,
-      default:0
+      default: 0,
     },
     lastClaimTime: {
       type: Date,
@@ -39,7 +44,7 @@ const schema = new Schema(
     },
     lastMiningTime: {
       type: Number,
-      default:0
+      default: 0,
     },
     completedTask: [],
     boosterCrads: [
@@ -62,7 +67,16 @@ const schema = new Schema(
         },
       },
     ],
-    dailyTask: [],
+    dailyTask: {
+      day: {
+        type: Number,
+        default:0
+      },
+      timestamp: {
+        type: Number,
+        default:0
+      },
+    },
     powerUps: {
       refill: {
         used: {
@@ -107,6 +121,10 @@ const schema = new Schema(
     rechargeRate: {
       type: Number,
       default: 1,
+    },
+    rechargeLimit: {
+      type: Number,
+      default: 1000,
     },
     currentNetwork: {
       type: Number,
