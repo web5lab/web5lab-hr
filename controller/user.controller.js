@@ -73,40 +73,6 @@ const login = catchAsync(async (req, res) => {
     user = await userSchema.findOne({ id: id });
   }
 
-  const userDb = await userSchema.aggregate([
-    {
-      $match: { id: id },
-    },
-    {
-      $lookup: {
-        from: "networks", // Use the actual collection name for user details
-        localField: "currentNetwork",
-        foreignField: "id",
-        as: "currentNetwork",
-      },
-    },
-    {
-      $lookup: {
-        from: "ranks", // Use the actual collection name for user details
-        localField: "currentRank",
-        foreignField: "id",
-        as: "currentRank",
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        __v: 0,
-        instanaceId: 0,
-        lastMiningTime: 0,
-        lastLoginTime: 0,
-        blocked: 0,
-        createdAt: 0,
-        updatedAt: 0,
-      },
-    },
-  ]);
-
   let notification = [];
   if (user.MiningRatePerHour != 0) {
     const miningData = calculateMiningAmount(
@@ -178,7 +144,7 @@ const login = catchAsync(async (req, res) => {
   await user.save();
 
   const response = responseObject(true, false, {
-    data: userDb[0],
+    data: user,
     notification: notification,
     message: "fetched successfully",
   });
@@ -202,8 +168,9 @@ const compltetTask = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.NOT_FOUND).json(err);
   }
-  const task = await taskSchema.findOne({ id: id });
+  const task = await taskSchema.findOne({ id: Number(taskId) });
   if (!task) {
+    console.log("task",task);
     const err = responseObject(false, true, {
       message: "task not exist",
     });
@@ -217,8 +184,12 @@ const compltetTask = catchAsync(async (req, res) => {
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
   user.completedTask.push(taskId);
+  user.Balance += task.rewardAmount;
+  user.totalEarning += task.rewardAmount;
   await user.save();
   const successResponse = responseObject(true, false, {
+    taskId:taskId,
+    coinToAdd: task.rewardAmount,
     message: "Task completed successfully",
   });
   return res.status(httpStatus.OK).json(successResponse);

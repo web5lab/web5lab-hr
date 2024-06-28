@@ -16,7 +16,7 @@ export const catchAsync = function (fn) {
     } catch (err) {
       logErrors(err);
       console.log(err);
-      return res.json("error occurred in server");
+      return res.status(500).json("error occurred in server");
     }
   };
 };

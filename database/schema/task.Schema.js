@@ -16,7 +16,7 @@ const schema = new Schema(
         default:""
     },
     rewardAmount: {
-      type: String,
+      type: Number,
     },
     requirment:{
       type:Number
