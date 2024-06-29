@@ -43,7 +43,7 @@ const login = catchAsync(async (req, res) => {
       lastLoginTime: Date.now(),
     });
 
-    if (chatType === "private") {
+    if (chatType === "sender") {
       newUser.instanaceId = instance;
       bot.sendMessage(instance, "hi your account is created");
     }
@@ -505,6 +505,7 @@ const dailyLogin = catchAsync(async (req, res) => {
   }
   user.Balance = rewardData.rewardAmount;
   user.totalEarning = rewardData.rewardAmount;
+  user.dailyTask.timestamp = Date.now()
   await user.save();
   const response = responseObject(true, false, {
     day: user.dailyTask.day,
