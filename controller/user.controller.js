@@ -24,57 +24,62 @@ const login = catchAsync(async (req, res) => {
     instance,
   } = req.userPayload;
   const { reffralId } = req.body;
+
   if (!id) {
     const err = responseObject(false, true, {
       message: "empty address",
     });
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
-  const existingUser = await userSchema.findOne({ id: id });
-  if (!existingUser) {
-    const newUser = new userSchema();
-    newUser.id = id;
-    newUser.userName = username;
-    newUser.name = first_name + last_name;
-    newUser.referalId = id;
-    newUser.lastLoginTime = Date.now();
+
+  let user = await userSchema.findOne({ id: id });
+
+  if (!user) {
+    const newUser = new userSchema({
+      id,
+      userName: username,
+      name: `${first_name} ${last_name}`,
+      referalId: id,
+      lastLoginTime: Date.now(),
+    });
+
     if (chatType === "private") {
       newUser.instanaceId = instance;
       bot.sendMessage(instance, "hi your account is created");
     }
+
     if (is_premium) {
       newUser.isPremium = is_premium;
     }
+
     if (reffralId) {
       newUser.referedBy = reffralId;
-      if (is_premium) {
-        await userSchema.findOneAndUpdate(
-          { id: reffralId },
-          {
-            $inc: { Balance: 10000, totalEarning: 10000 },
-          }
-        );
-      } else {
-        await userSchema.findOneAndUpdate(
-          { id: reffralId },
-          {
-            $inc: { Balance: 5000, totalEarning: 5000 },
-          }
-        );
-      }
+      const updateAmount = is_premium ? 10000 : 5000;
+      await userSchema.findOneAndUpdate(
+        { id: reffralId },
+        {
+          $inc: { Balance: updateAmount, totalEarning: updateAmount },
+        }
+      );
     }
-    await newUser.save();
+
+    user = await newUser.save();
   }
 
-  let user;
-  if (existingUser) {
-    user = existingUser;
-  } else {
-    user = await userSchema.findOne({ id: id });
+  const now = new Date();
+  const lastClaimTime = user.dailyTask.timestamp
+    ? new Date(user.dailyTask.timestamp)
+    : null;
+  const nextClaimTime = new Date(now);
+  nextClaimTime.setUTCHours(4, 0, 0, 0);
+  if (nextClaimTime < now) {
+    nextClaimTime.setUTCDate(nextClaimTime.getUTCDate() + 1);
   }
 
-  let notification = [];
-  if (user.MiningRatePerHour != 0) {
+  let minerNotification = null;
+  let claimed = false;
+
+  if (user.MiningRatePerHour !== 0) {
     const miningData = calculateMiningAmount(
       user.MiningRatePerHour,
       user.lastMiningTime
@@ -82,72 +87,82 @@ const login = catchAsync(async (req, res) => {
     user.lastMiningTime = miningData.lastMiningTime;
     user.Balance += miningData.miningAmount;
     user.totalEarning += miningData.miningAmount;
-    const notificationData = {
-      amount: miningData.miningAmount,
-      type: "mining",
-    };
-    notification.push(notificationData);
+
+    minerNotification = { amount: miningData.miningAmount };
   }
 
-  if (user.dailyTask.day != 0) {
-    if (
-      calculateDaysSpent(user.dailyTask.timestamp) < 1 ||
-      user.dailyTask.day === 10
-    ) {
-      user.dailyTask.day = 0;
-      user.dailyTask.timestamp = 0;
+  // Adjust reward claim logic
+  const dayInMillis = 24 * 60 * 60 * 1000;
+  const lastClaimDay = lastClaimTime
+    ? Math.floor(lastClaimTime.getTime() / dayInMillis)
+    : 0;
+  const currentDay = Math.floor(now.getTime() / dayInMillis);
+  let rewardDay = user.dailyTask.day;
+  let compltedDay = user.dailyTask.day;
+  let dailyReward;
+  // console.log("days", lastClaimDay, lastClaimTime, currentDay);
+  if (!lastClaimTime || lastClaimDay !== currentDay) {
+    if (lastClaimDay === currentDay - 1) {
+      if (user.dailyTask.day === 10) {
+        rewardDay = 1;
+        compltedDay = 0;
+      } else {
+        rewardDay += 1;
+      }
+    } else {
+      rewardDay = 1;
+      compltedDay = 0;
     }
+
+    claimed = false;
+    dailyReward = {
+      rewardStreak: rewardDay,
+      compltedDay: compltedDay,
+      claimed: claimed,
+    };
+  } else {
+    dailyReward = {
+      claimed: true,
+      compltedDay: rewardDay,
+      rewardStreak: 0,
+    };
   }
-  if (calculateDaysSpent(user.lastLoginTime) === 1) {
+
+  if (calculateDaysSpent(user.lastLoginTime) >= 1) {
     user.powerUps.boost.remaining = 3;
     user.powerUps.refill.used = false;
   }
 
-  if (calculateDaysSpent(user.dailyTask.timestamp) != 0) {
-    const notificationData = {
-      amount: 0,
-      type: "dailyreward",
-    };
-    notification.push(notificationData);
-  }
-
   const rank = findCurrentRank(user.Balance);
-  if (rank.id != user.currentRank) {
+  if (rank.id !== user.currentRank) {
     user.currentRank = rank.id;
-    if (user.referedBy != 0) {
-      if (user.isPremium) {
-        await userSchema.findOneAndUpdate(
-          { id: user.referedBy },
-          {
-            $inc: {
-              Balance: rank.premiumReferalAmount,
-              totalEarning: rank.premiumReferalAmount,
-            },
-          }
-        );
-      } else {
-        await userSchema.findOneAndUpdate(
-          { id: user.referedBy },
-          {
-            $inc: {
-              Balance: rank.RefralAmount,
-              totalEarning: rank.RefralAmount,
-            },
-          }
-        );
-      }
+    const referalAmount = user.isPremium
+      ? rank.premiumReferalAmount
+      : rank.RefralAmount;
+    if (user.referedBy !== 0) {
+      await userSchema.findOneAndUpdate(
+        { id: user.referedBy },
+        {
+          $inc: {
+            Balance: referalAmount,
+            totalEarning: referalAmount,
+          },
+        }
+      );
     }
   }
 
   user.lastLoginTime = Date.now();
-
   await user.save();
 
   const response = responseObject(true, false, {
     data: user,
-    notification: notification,
+    dailyReward,
+    minerNotification: minerNotification,
+    claimed,
     message: "fetched successfully",
   });
+
   return res.status(httpStatus.OK).json(response);
 });
 
@@ -170,7 +185,7 @@ const compltetTask = catchAsync(async (req, res) => {
   }
   const task = await taskSchema.findOne({ id: Number(taskId) });
   if (!task) {
-    console.log("task",task);
+    // console.log("task", task);
     const err = responseObject(false, true, {
       message: "task not exist",
     });
@@ -188,7 +203,7 @@ const compltetTask = catchAsync(async (req, res) => {
   user.totalEarning += task.rewardAmount;
   await user.save();
   const successResponse = responseObject(true, false, {
-    taskId:taskId,
+    taskId: taskId,
     coinToAdd: task.rewardAmount,
     message: "Task completed successfully",
   });
@@ -223,7 +238,7 @@ const buyMiner = catchAsync(async (req, res) => {
   }
 
   // Check if user already has this power-up and its current level
-  console.log(user.miningCards);
+  // console.log(user.miningCards);
   // const err = responseObject(false, true, {
   //   data:user.miningCards,
   //   message: "power-up not found or not enabled",
@@ -265,16 +280,20 @@ const buyMiner = catchAsync(async (req, res) => {
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
 
+  let hashAdded;
+
   if (nextLevel != 1) {
     const previousLevelDetails = powerUp.levelAmount.find(
       (l) => l.level === nextLevel - 1
     );
     const hashtoAdd = levelDetails.miningRate - previousLevelDetails.miningRate;
+    hashAdded = levelDetails.miningRate - previousLevelDetails.miningRate;
     user.MiningRatePerHour += hashtoAdd;
   }
 
   if (nextLevel === 1) {
     user.MiningRatePerHour + levelDetails.miningRate;
+    hashAdded = levelDetails.miningRate;
   }
 
   // Deduct the price from user's balance and update power-up level
@@ -293,6 +312,7 @@ const buyMiner = catchAsync(async (req, res) => {
   await user.save();
 
   const successResponse = responseObject(true, false, {
+    hashAdded: hashAdded,
     message: "Power-up bought/upgraded successfully",
   });
   return res.status(httpStatus.OK).json(successResponse);
@@ -330,6 +350,8 @@ const buyBooster = catchAsync(async (req, res) => {
     id: boosterId,
     level: 0,
   };
+
+  // console.log("user", userBooster);
 
   // Determine the next level and its price
   const nextLevel = userBooster.level + 1;
@@ -372,20 +394,24 @@ const buyBooster = catchAsync(async (req, res) => {
   } else {
     user.boosterCrads.push(userBooster);
   }
-
+  let type;
   if (boosterId === 1) {
+    type = "Clicks";
     user.earnPerclicks += levelDetails.buffIncrement;
   }
   if (boosterId === 2) {
+    type = "RechargeLimit";
     user.rechargeLimit += levelDetails.buffIncrement;
   }
   if (boosterId === 3) {
+    type = "RechargeRate";
     user.rechargeRate += levelDetails.buffIncrement;
   }
 
   await user.save();
 
   const successResponse = responseObject(true, false, {
+    type: type,
     message: "Booster bought/upgraded successfully",
   });
   return res.status(httpStatus.OK).json(successResponse);
@@ -433,19 +459,42 @@ const dailyLogin = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.NOT_FOUND).json(err);
   }
+  const now = new Date();
+  const lastClaimTime = user.dailyTask.timestamp
+    ? new Date(user.dailyTask.timestamp)
+    : null;
+  const nextClaimTime = new Date(now);
+  nextClaimTime.setUTCHours(4, 0, 0, 0);
+  if (nextClaimTime < now) {
+    nextClaimTime.setUTCDate(nextClaimTime.getUTCDate() + 1);
+  }
 
-  if (calculateDaysSpent(user.dailyTask.timestamp) === 0) {
+  // Adjust reward claim logic
+  const dayInMillis = 24 * 60 * 60 * 1000;
+  const lastClaimDay = lastClaimTime
+    ? Math.floor(lastClaimTime.getTime() / dayInMillis)
+    : 0;
+  const currentDay = Math.floor(now.getTime() / dayInMillis);
+
+  if (!lastClaimTime || lastClaimDay !== currentDay) {
+    if (lastClaimDay === currentDay - 1) {
+      if (user.dailyTask.day === 10) {
+        user.dailyTask.day = 1;
+      } else {
+        user.dailyTask.day += 1;
+      }
+    } else {
+      user.dailyTask.day = 1;
+    }
+  } else {
     const err = responseObject(false, true, {
-      message: "please wait 24 hour",
+      message: "reward alredy claimed",
     });
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
-  if (user.dailyTask.day === 10) {
-    user.dailyTask.day = 0;
-  }
 
   const rewardData = await dailyRewardSchema.findOne({
-    day: user.dailyTask.day + 1,
+    day: user.dailyTask.day,
   });
 
   if (!rewardData) {
@@ -454,13 +503,12 @@ const dailyLogin = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.NOT_FOUND).json(err);
   }
-
-  user.dailyTask.day += 1;
-  user.dailyTask.timestamp = Date.now();
-  user.Balance += rewardData.rewardAmount;
-  user.totalEarning += rewardData.rewardAmoun;
+  user.Balance = rewardData.rewardAmount;
+  user.totalEarning = rewardData.rewardAmount;
   await user.save();
   const response = responseObject(true, false, {
+    day: user.dailyTask.day,
+    claimed: true,
     message: "reward claimed succesfully",
   });
   return res.status(httpStatus.OK).json(response);
@@ -754,12 +802,12 @@ const getRanksLeaderBoard = catchAsync(async (req, res) => {
     {
       $match: { currentRank: Number(rank) },
     },
-    // {
-    //   $sort: { totalEarning: 1 },
-    // },
-    // {
-    //   $limit: limit,
-    // },
+    {
+      $sort: { totalEarning: 1 },
+    },
+    {
+      $limit: limit,
+    },
     {
       $project: {
         _id: 0,
