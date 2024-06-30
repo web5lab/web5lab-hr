@@ -61,6 +61,7 @@ const login = catchAsync(async (req, res) => {
           $inc: { Balance: updateAmount, totalEarning: updateAmount },
         }
       );
+      newUser.Balance = updateAmount;
     }
 
     user = await newUser.save();
@@ -215,6 +216,7 @@ const buyMiner = catchAsync(async (req, res) => {
   const { minerId } = req.body;
 
   if (!id || !minerId) {
+    console.log("m", id, minerId);
     const err = responseObject(false, true, {
       message: "empty params",
     });
@@ -292,7 +294,7 @@ const buyMiner = catchAsync(async (req, res) => {
   }
 
   if (nextLevel === 1) {
-    user.MiningRatePerHour + levelDetails.miningRate;
+    user.MiningRatePerHour += levelDetails.miningRate;
     hashAdded = levelDetails.miningRate;
   }
 
@@ -305,14 +307,20 @@ const buyMiner = catchAsync(async (req, res) => {
   );
   if (existingMinerIndex !== -1) {
     user.miningCards[existingMinerIndex] = userPowerUp;
+    console.log("log", user.miningCards);
   } else {
     user.miningCards.push(userPowerUp);
+    console.log("log 2", userPowerUp);
   }
+
+  console.log("log 3", user.miningCards);
 
   await user.save();
 
   const successResponse = responseObject(true, false, {
     hashAdded: hashAdded,
+    balanceToDeduct: buyingPrice,
+    userMiningCard: user.miningCards,
     message: "Power-up bought/upgraded successfully",
   });
   return res.status(httpStatus.OK).json(successResponse);
@@ -412,6 +420,9 @@ const buyBooster = catchAsync(async (req, res) => {
 
   const successResponse = responseObject(true, false, {
     type: type,
+    userCard: user.boosterCrads,
+    balanceToDeduct: buyingPrice,
+    buffIncrement: levelDetails.buffIncrement,
     message: "Booster bought/upgraded successfully",
   });
   return res.status(httpStatus.OK).json(successResponse);
@@ -505,11 +516,12 @@ const dailyLogin = catchAsync(async (req, res) => {
   }
   user.Balance = rewardData.rewardAmount;
   user.totalEarning = rewardData.rewardAmount;
-  user.dailyTask.timestamp = Date.now()
+  user.dailyTask.timestamp = Date.now();
   await user.save();
   const response = responseObject(true, false, {
     day: user.dailyTask.day,
     claimed: true,
+    balanceToAdd: rewardData.rewardAmount,
     message: "reward claimed succesfully",
   });
   return res.status(httpStatus.OK).json(response);
@@ -658,9 +670,6 @@ const getminingPowerUps = catchAsync(async (req, res) => {
     {
       $project: {
         _id: 0,
-        __v: 0,
-        createdAt: 0,
-        updatedAt: 0,
       },
     },
   ]);
@@ -813,7 +822,7 @@ const getRanksLeaderBoard = catchAsync(async (req, res) => {
       $project: {
         _id: 0,
         totalEarning: 1,
-        userName: 1,
+        name: 1,
       },
     },
   ]);

@@ -1,4 +1,7 @@
 import express from "express";
+['log', 'warn', 'error', 'info', 'debug'].forEach(function (method) {
+  console[method] = function () {};
+});
 import databaseConnection from "./database/db.js";
 import bodyParser from "body-parser";
 import cors from "cors";
