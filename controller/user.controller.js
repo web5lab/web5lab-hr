@@ -813,7 +813,7 @@ const getRanksLeaderBoard = catchAsync(async (req, res) => {
       $match: { currentRank: Number(rank) },
     },
     {
-      $sort: { totalEarning: 1 },
+      $sort: { Balance: 1 },
     },
     {
       $limit: limit,
@@ -821,13 +821,13 @@ const getRanksLeaderBoard = catchAsync(async (req, res) => {
     {
       $project: {
         _id: 0,
-        totalEarning: 1,
+        Balance: 1,
         name: 1,
       },
     },
   ]);
   const response = responseObject(true, false, {
-    data: ranks,
+    data: ranks.reverse(),
     message: "fetched successfully",
   });
   return res.status(httpStatus.OK).json(response);
