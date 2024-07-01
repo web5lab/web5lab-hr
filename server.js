@@ -34,11 +34,11 @@ databaseConnection(() => {
 });
 
 app.get("/testapi", async (req, res) => {
-  console.log("req body", req?.body)
+  console.log("req body", req?.body);
   res.send("server is active");
 });
 
 app.post("/testapi", async (req, res) => {
-  console.log("req body", req?.body)
+  console.log("req body", req?.body);
   res.send("server is active");
 });

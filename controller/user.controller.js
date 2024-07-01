@@ -514,8 +514,8 @@ const dailyLogin = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.NOT_FOUND).json(err);
   }
-  user.Balance = rewardData.rewardAmount;
-  user.totalEarning = rewardData.rewardAmount;
+  user.Balance += rewardData.rewardAmount;
+  user.totalEarning += rewardData.rewardAmount;
   user.dailyTask.timestamp = Date.now();
   await user.save();
   const response = responseObject(true, false, {
