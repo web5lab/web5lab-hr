@@ -134,7 +134,7 @@ const login = catchAsync(async (req, res) => {
     user.powerUps.refill.used = false;
   }
 
-  const rank = findCurrentRank(user.Balance);
+  const rank = findCurrentRank(user.totalEarning);
   if (rank.id !== user.currentRank) {
     user.currentRank = rank.id;
     const referalAmount = user.isPremium
