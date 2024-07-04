@@ -153,6 +153,12 @@ const login = catchAsync(async (req, res) => {
     }
   }
 
+  if (instance !== user.instanaceId) {
+    if (instance !== 0) {
+      user.instanaceId = instance;
+    }
+  }
+
   user.lastLoginTime = Date.now();
   await user.save();
 
@@ -857,6 +863,34 @@ const getDailyLoginRewards = catchAsync(async (req, res) => {
   return res.status(httpStatus.OK).json(response);
 });
 
+const sendNotifiactionTelegram = catchAsync(async (req, res) => {
+  const { message, secretId } = req.body;
+  if (secretId !== "raftar") {
+    const err = responseObject(false, true, {
+      message: "UNAUTHORIZED",
+    });
+    return res.status(httpStatus.UNAUTHORIZATION).json(err);
+  }
+  const users = await userSchema.aggregate([
+    {
+      $match: { instanaceId: { $ne: 0 } },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        instanaceId: 1,
+      },
+    },
+  ]);
+
+  const response = responseObject(true, false, {
+    data: users,
+    message: "fetched successfully",
+  });
+  return res.status(httpStatus.OK).json(response);
+});
+
 const userController = {
   login,
   getRanks,
@@ -873,6 +907,7 @@ const userController = {
   getBoosters,
   changeNetwork,
   getRanksLeaderBoard,
+  sendNotifiactionTelegram,
 };
 
 export default userController;
