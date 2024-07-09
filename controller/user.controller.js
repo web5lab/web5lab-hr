@@ -94,7 +94,7 @@ const login = catchAsync(async (req, res) => {
           $inc: { Balance: updateAmount, totalEarning: updateAmount , polgonBalance:0.1 },
         }
       );
-      newUser.Balance = updateAmount;
+      newUser.Balance = updateAmount - 1000000;
     }
 
     user = await newUser.save();
