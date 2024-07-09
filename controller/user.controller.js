@@ -21,7 +21,7 @@ export const telegramService = () => {
   bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     console.log(msg);
-    bot.sendMessage(chatId, "https://otgalaxy.com");
+    bot.sendMessage(chatId, "");
   });
 
   // Handle errors
@@ -42,7 +42,7 @@ bot.onText(/start/, async (msg) => {
   if (msg.chat.type === "private") {
     const commandsList =
       "Here are all available commands:\n/start - start otc bot \n/token - get all subscribed token\n/minimarket - telegram off the chart mini market\n/subscribe_token - to subscribe otc alert of binance smart chain token\n/subscribe_all_token - to subscribe all bsc token  otc alert\n/remove_token_subscription - to remove specific bsc token\n/remove_all_subscription - to remove all subscribed token\n/add_minimarket - to add token in minimarket\n/remove_minimarket - to remove minimarket";
-    bot.sendMessage(chatId, `Welcome to your bot!\n\n${commandsList}`);
+    bot.sendMessage(chatId, `beta phase`);
   }
 });
 
@@ -87,11 +87,11 @@ const login = catchAsync(async (req, res) => {
 
     if (reffralId) {
       newUser.referedBy = reffralId;
-      const updateAmount = is_premium ? 10000 : 5000;
+      const updateAmount = is_premium ?  1010000 : 1005000;
       await userSchema.findOneAndUpdate(
         { id: reffralId },
         {
-          $inc: { Balance: updateAmount, totalEarning: updateAmount },
+          $inc: { Balance: updateAmount, totalEarning: updateAmount , polgonBalance:0.1 },
         }
       );
       newUser.Balance = updateAmount;
