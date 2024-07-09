@@ -1,7 +1,5 @@
 import express from "express";
-['log', 'warn', 'error', 'info', 'debug'].forEach(function (method) {
-  console[method] = function () {};
-});
+
 import databaseConnection from "./database/db.js";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -9,6 +7,7 @@ import botRoute from "./routes/botRoutes.js";
 import statsRoute from "./routes/statsRoutes.js";
 import adminRoute from "./routes/adminRoutes.js";
 import dotenv from "dotenv";
+import { telegramService } from "./controller/user.controller.js";
 dotenv.config();
 
 const app = express();
@@ -29,6 +28,7 @@ app.use("/admin", adminRoute);
 
 databaseConnection(() => {
   app.listen(Port, () => {
+    // telegramService()
     console.log(`server listening on port ${Port}`);
   });
 });

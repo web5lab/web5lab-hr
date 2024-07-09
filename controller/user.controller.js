@@ -10,8 +10,41 @@ import { calculateMiningAmount } from "../services/miningChecker.js";
 import TelegramBot from "node-telegram-bot-api";
 import { calculateDaysSpent } from "../services/timerUtils.js";
 import { findCurrentRank } from "../services/rankChecker.js";
-const token = "6737211963:AAGjUss03Wdev4fIryoUFuqR8lX5AOaeQpA";
-const bot = new TelegramBot(token);
+import SecretCodeSchema from "../database/schema/SecretCode.Schema.js";
+
+const token = "7348203341:AAGEFNyEWz2l4dsJEbE3wwuygV-_9PV7baQ";
+export const bot = new TelegramBot(token, { polling: true });
+
+export const telegramService = () => {
+  console.log("telegram service started");
+
+  bot.onText(/\/help/, (msg) => {
+    const chatId = msg.chat.id;
+    console.log(msg);
+    bot.sendMessage(chatId, "https://otgalaxy.com");
+  });
+
+  // Handle errors
+  bot.on("polling_error", (error) => {
+    console.error(`Polling error: ${error.message}`);
+  });
+
+  // Handle other types of errors
+  bot.on("error", (error) => {
+    console.error(`Bot error: ${error.message}`);
+  });
+};
+
+bot.onText(/start/, async (msg) => {
+  console.log("msg", msg);
+  const chatId = msg.chat.id;
+
+  if (msg.chat.type === "private") {
+    const commandsList =
+      "Here are all available commands:\n/start - start otc bot \n/token - get all subscribed token\n/minimarket - telegram off the chart mini market\n/subscribe_token - to subscribe otc alert of binance smart chain token\n/subscribe_all_token - to subscribe all bsc token  otc alert\n/remove_token_subscription - to remove specific bsc token\n/remove_all_subscription - to remove all subscribed token\n/add_minimarket - to add token in minimarket\n/remove_minimarket - to remove minimarket";
+    bot.sendMessage(chatId, `Welcome to your bot!\n\n${commandsList}`);
+  }
+});
 
 const login = catchAsync(async (req, res) => {
   const {
@@ -461,6 +494,33 @@ const addClicks = catchAsync(async (req, res) => {
   return res.status(httpStatus.OK).json(response);
 });
 
+const claimSecretReward = catchAsync(async (req, res) => {
+  const { id } = req.userPayload;
+  const { code } = req.body;
+  if (!id) {
+    const err = responseObject(false, true, {
+      message: "empty params",
+    });
+    return res.status(httpStatus.BAD_REQUEST).json(err);
+  }
+  const user = await userSchema.findOne({ id: id });
+  if (!user) {
+    const err = responseObject(false, true, {
+      message: "user not found",
+    });
+    return res.status(httpStatus.NOT_FOUND).json(err);
+  }
+  const coins = 1000;
+  user.Balance += coins;
+  user.totalEarning += coins;
+  await user.save();
+  const response = responseObject(true, false, {
+    data: coins,
+    message: "fetched successfully",
+  });
+  return res.status(httpStatus.OK).json(response);
+});
+
 const dailyLogin = catchAsync(async (req, res) => {
   const { id } = req.userPayload;
   if (!id) {
@@ -813,7 +873,7 @@ const getRanks = catchAsync(async (req, res) => {
 
 const getRanksLeaderBoard = catchAsync(async (req, res) => {
   const { rank } = req.params;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = parseInt(req.query.limit) || 40;
   const ranks = await userSchema.aggregate([
     {
       $match: { currentRank: Number(rank) },
@@ -828,6 +888,7 @@ const getRanksLeaderBoard = catchAsync(async (req, res) => {
       $project: {
         _id: 0,
         Balance: 1,
+        currentNetwork: 1,
         name: 1,
       },
     },
@@ -858,6 +919,15 @@ const getDailyLoginRewards = catchAsync(async (req, res) => {
   ]);
   const response = responseObject(true, false, {
     data: daily,
+    message: "fetched successfully",
+  });
+  return res.status(httpStatus.OK).json(response);
+});
+
+const getSecretCode = catchAsync(async (req, res) => {
+  const secretCode = await SecretCodeSchema.findOne({ id: 1 });
+  const response = responseObject(true, false, {
+    data: secretCode,
     message: "fetched successfully",
   });
   return res.status(httpStatus.OK).json(response);
@@ -908,6 +978,8 @@ const userController = {
   changeNetwork,
   getRanksLeaderBoard,
   sendNotifiactionTelegram,
+  getSecretCode,
+  claimSecretReward,
 };
 
 export default userController;

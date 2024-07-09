@@ -118,6 +118,10 @@ const schema = new Schema(
       type: Number,
       default: 1,
     },
+    polgonBalance: {
+      type: Number,
+      default: 0.00,
+    },
     rechargeRate: {
       type: Number,
       default: 1,
