@@ -13,7 +13,7 @@ import { findCurrentRank } from "../services/rankChecker.js";
 import SecretCodeSchema from "../database/schema/SecretCode.Schema.js";
 
 const token = "7348203341:AAGEFNyEWz2l4dsJEbE3wwuygV-_9PV7baQ";
-export const bot = new TelegramBot(token, { polling: true });
+// export const bot = new TelegramBot(token, { polling: true });
 
 export const telegramService = () => {
   console.log("telegram service started");
@@ -35,16 +35,16 @@ export const telegramService = () => {
   });
 };
 
-bot.onText(/start/, async (msg) => {
-  console.log("msg", msg);
-  const chatId = msg.chat.id;
+// bot.onText(/start/, async (msg) => {
+//   console.log("msg", msg);
+//   const chatId = msg.chat.id;
 
-  if (msg.chat.type === "private") {
-    const commandsList =
-      "Here are all available commands:\n/start - start otc bot \n/token - get all subscribed token\n/minimarket - telegram off the chart mini market\n/subscribe_token - to subscribe otc alert of binance smart chain token\n/subscribe_all_token - to subscribe all bsc token  otc alert\n/remove_token_subscription - to remove specific bsc token\n/remove_all_subscription - to remove all subscribed token\n/add_minimarket - to add token in minimarket\n/remove_minimarket - to remove minimarket";
-    bot.sendMessage(chatId, `beta phase`);
-  }
-});
+//   if (msg.chat.type === "private") {
+//     const commandsList =
+//       "Here are all available commands:\n/start - start otc bot \n/token - get all subscribed token\n/minimarket - telegram off the chart mini market\n/subscribe_token - to subscribe otc alert of binance smart chain token\n/subscribe_all_token - to subscribe all bsc token  otc alert\n/remove_token_subscription - to remove specific bsc token\n/remove_all_subscription - to remove all subscribed token\n/add_minimarket - to add token in minimarket\n/remove_minimarket - to remove minimarket";
+//     bot.sendMessage(chatId, `beta phase`);
+//   }
+// });
 
 const login = catchAsync(async (req, res) => {
   const {
@@ -935,7 +935,7 @@ const getSecretCode = catchAsync(async (req, res) => {
 
 const sendNotifiactionTelegram = catchAsync(async (req, res) => {
   const { message, secretId } = req.body;
-  if (secretId !== "raftar") {
+  if (secretId !== "shiva") {
     const err = responseObject(false, true, {
       message: "UNAUTHORIZED",
     });
