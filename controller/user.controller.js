@@ -1,4 +1,9 @@
-import { catchAsync, httpStatus, responseObject } from "../utils/helper.js";
+import {
+  catchAsync,
+  catchAsyncFn,
+  httpStatus,
+  responseObject,
+} from "../utils/helper.js";
 import networkSchema from "../database/schema/network.schema.js";
 import powerUpsSchema from "../database/schema/powerUps.schema.js";
 import taskSchema from "../database/schema/task.Schema.js";
@@ -13,7 +18,7 @@ import { findCurrentRank } from "../services/rankChecker.js";
 import SecretCodeSchema from "../database/schema/SecretCode.Schema.js";
 
 const token = "7348203341:AAGEFNyEWz2l4dsJEbE3wwuygV-_9PV7baQ";
-// export const bot = new TelegramBot(token, { polling: true });
+export const bot = new TelegramBot(token, { polling: true });
 
 export const telegramService = () => {
   console.log("telegram service started");
@@ -21,30 +26,35 @@ export const telegramService = () => {
   bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     console.log(msg);
-    bot.sendMessage(chatId, "");
+    bot.sendMessage(chatId, "hi how can i help you");
   });
+
+  bot.onText(/\/users/, async (msg) => {
+    const chatId = msg.chat.id;
+    const count = await userSchema.countDocuments();
+    bot.sendMessage(chatId, `total User Is => ${count}`);
+  });
+
+  bot.onText(
+    /\/balance/,
+    catchAsyncFn(async (msg) => {
+      const chatId = msg.chat.id;
+      console.log("chat", chatId);
+      const count = await userSchema.findOne({ id: Number(chatId) });
+      bot.sendMessage(chatId, count.Balance);
+    })
+  );
 
   // Handle errors
   bot.on("polling_error", (error) => {
-    console.error(`Polling error: ${error.message}`);
+    // console.error(`Polling error: ${error.message}`);
   });
 
   // Handle other types of errors
   bot.on("error", (error) => {
-    console.error(`Bot error: ${error.message}`);
+    // console.error(`Bot error: ${error.message}`);
   });
 };
-
-// bot.onText(/start/, async (msg) => {
-//   console.log("msg", msg);
-//   const chatId = msg.chat.id;
-
-//   if (msg.chat.type === "private") {
-//     const commandsList =
-//       "Here are all available commands:\n/start - start otc bot \n/token - get all subscribed token\n/minimarket - telegram off the chart mini market\n/subscribe_token - to subscribe otc alert of binance smart chain token\n/subscribe_all_token - to subscribe all bsc token  otc alert\n/remove_token_subscription - to remove specific bsc token\n/remove_all_subscription - to remove all subscribed token\n/add_minimarket - to add token in minimarket\n/remove_minimarket - to remove minimarket";
-//     bot.sendMessage(chatId, `beta phase`);
-//   }
-// });
 
 const login = catchAsync(async (req, res) => {
   const {
@@ -73,6 +83,7 @@ const login = catchAsync(async (req, res) => {
       userName: username,
       name: `${first_name} ${last_name}`,
       referalId: id,
+      MiningRatePerHour: 100,
       lastLoginTime: Date.now(),
     });
 
@@ -87,11 +98,48 @@ const login = catchAsync(async (req, res) => {
 
     if (reffralId) {
       newUser.referedBy = reffralId;
-      const updateAmount = is_premium ?  1010000 : 1005000;
-      await userSchema.findOneAndUpdate(
+      const updateAmount = is_premium ? 1010000 : 1005000;
+
+      const refredUser = await userSchema.findOneAndUpdate(
         { id: reffralId },
         {
-          $inc: { Balance: updateAmount, totalEarning: updateAmount , polgonBalance:0.1 },
+          $inc: {
+            Balance: updateAmount,
+            totalEarning: updateAmount,
+            polgonBalance: 0.1,
+          },
+        }
+      );
+      const msg = `Hi ${
+        refredUser?.userName ? `@${refredUser?.userName}` : refredUser?.name
+      } \n\n ${first_name} has joined MinerDoge using your referral! You have been credited with 1 million MinerDoge coins and 0.1 MATIC token in your account.`;
+      bot.sendAnimation(
+        refredUser.id,
+        "https://img.minerdoge.fun/ipfs/bafkreig5kzqg6mkhpry3d5bvkb5v6kfkh3ymmoxcloaekr6sush5326e5i",
+        {
+          caption: msg,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Game 🎮",
+                  url: "https://t.me/minerdogcoin_bot/earn",
+                },
+              ],
+              [
+                {
+                  text: "Join Community 🌐",
+                  url: "https://t.me/minerdoge_official",
+                },
+              ],
+              [
+                {
+                  text: "Website 🌐",
+                  url: "https://minerdoge.fun/",
+                },
+              ],
+            ],
+          },
         }
       );
       newUser.Balance = updateAmount - 1000000;
@@ -167,8 +215,8 @@ const login = catchAsync(async (req, res) => {
     user.powerUps.refill.used = false;
   }
 
-  const rank = findCurrentRank(user.totalEarning);
-  if (rank.id !== user.currentRank) {
+  const rank = findCurrentRank(user.Balance);
+  if (rank.id > user.currentRank) {
     user.currentRank = rank.id;
     const referalAmount = user.isPremium
       ? rank.premiumReferalAmount
@@ -934,7 +982,7 @@ const getSecretCode = catchAsync(async (req, res) => {
 });
 
 const sendNotifiactionTelegram = catchAsync(async (req, res) => {
-  const { message, secretId } = req.body;
+  const { message, secretId, imageUrl } = req.body;
   if (secretId !== "shiva") {
     const err = responseObject(false, true, {
       message: "UNAUTHORIZED",
@@ -943,16 +991,82 @@ const sendNotifiactionTelegram = catchAsync(async (req, res) => {
   }
   const users = await userSchema.aggregate([
     {
-      $match: { instanaceId: { $ne: 0 } },
-    },
-
-    {
       $project: {
         _id: 0,
-        instanaceId: 1,
+        id: 1,
+        userName: 1,
+        name: 1,
       },
     },
   ]);
+
+  
+
+  for (let index = 0; index < users.length; index++) {
+    const msg = `Hi ${
+      users[index]?.userName ? `@${users[index]?.userName}` : users[index]?.name
+    } \n ${message}`;
+    bot.sendAnimation(users[index]?.id, imageUrl, {
+      caption: msg,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Game 🎮",
+              url: "https://t.me/minerdogcoin_bot/earn",
+            },
+          ],
+          [
+            {
+              text: "Join Community 🌐",
+              url: "https://t.me/minerdoge_official",
+            },
+          ],
+          [
+            {
+              text: "Website 🌐",
+              url: "https://minerdoge.fun/",
+            },
+          ],
+        ],
+      },
+    });
+  }
+
+  const response = responseObject(true, false, {
+    data: users,
+    message: "fetched successfully",
+  });
+  return res.status(httpStatus.OK).json(response);
+});
+
+const sendUpdateTelegram = catchAsync(async (req, res) => {
+  const { message, secretId, imageUrl } = req.body;
+  if (secretId !== "shiva") {
+    const err = responseObject(false, true, {
+      message: "UNAUTHORIZED",
+    });
+    return res.status(httpStatus.UNAUTHORIZATION).json(err);
+  }
+  const users = await userSchema.aggregate([
+    {
+      $project: {
+        _id: 0,
+        id: 1,
+        userName: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  for (let index = 0; index < users.length; index++) {
+    const msg = `Hi ${
+      users[index]?.userName ? `@${users[index]?.userName}` : users[index]?.name
+    } \n ${message}`;
+    bot.sendPhoto(users[index]?.id, imageUrl, {
+      caption: msg,
+    });
+  }
 
   const response = responseObject(true, false, {
     data: users,
@@ -980,6 +1094,7 @@ const userController = {
   sendNotifiactionTelegram,
   getSecretCode,
   claimSecretReward,
+  sendUpdateTelegram
 };
 
 export default userController;

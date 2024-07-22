@@ -20,6 +20,26 @@ export const catchAsync = function (fn) {
     }
   };
 };
+export const catchAsyncFn = function (fn) {
+  /**
+   * @fn function which is wrapped by the catchAsync function to use the DRY method.
+   * pass down the request, response, and the next arguments into the inner function.
+   */
+
+  return async (req, res, next) => {
+    try {
+      const result = await fn(req, res, next);
+      // Check if the result is a promise before proceeding
+      if (result && typeof result.catch === "function") {
+        await result; // Ensure any potential promise is resolved
+      }
+    } catch (err) {
+      logErrors(err);
+      console.log(err);
+      return 
+    }
+  };
+};
 
 export const httpStatus = {
   OK: 200,

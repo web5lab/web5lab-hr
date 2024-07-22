@@ -22,5 +22,6 @@ router.post("/buyminer", verifyTgUser, userController.buyMiner);
 router.post("/completetask", verifyTgUser, userController.compltetTask);
 router.post("/dailylogin", verifyTgUser, userController.dailyLogin);
 router.post("/notifyUser",  userController.sendNotifiactionTelegram);
+router.post("/updateUser",  userController.sendUpdateTelegram);
 
 export default router;

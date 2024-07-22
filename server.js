@@ -30,7 +30,7 @@ app.use("/admin", adminRoute);
 
 databaseConnection(() => {
   app.listen(Port, () => {
-    // telegramService()
+    telegramService()
     console.log(`server listening on port ${Port}`);
   });
 });
