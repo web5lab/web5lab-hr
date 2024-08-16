@@ -74,7 +74,7 @@ const login = catchAsync(async (req, res) => {
     });
     return res.status(httpStatus.BAD_REQUEST).json(err);
   }
-
+//
   let user = await userSchema.findOne({ id: id });
 
   if (!user) {
